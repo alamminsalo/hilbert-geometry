@@ -35,4 +35,39 @@ mod tests {
         let decoded = decode_geometry(&encoded);
         assert_eq!(poly, decoded);
     }
+
+    #[test]
+    fn test_serialization() {
+        let point = Geometry::Point(point![
+            x: 1.0, y: 1.0
+        ]);
+        let serializer = HilbertSerializer::new();
+        let encoded = serializer.encode(&point).unwrap();
+        println!("Encoded point to {} bytes", encoded.len());
+        let decoded = serializer.decode(&encoded).unwrap();
+        assert_eq!(point, decoded);
+
+        let ls = Geometry::LineString(line_string![
+            (x: 1.0, y: 1.0),
+            (x: 5.0, y: 5.0)
+        ]);
+        let serializer = HilbertSerializer::new();
+        let encoded = serializer.encode(&ls).unwrap();
+        println!("Encoded linestring to {} bytes", encoded.len());
+        let decoded = serializer.decode(&encoded).unwrap();
+        assert_eq!(ls, decoded);
+
+        let poly = Geometry::Polygon(polygon![
+            (x: 0.0, y: 0.0),
+            (x: 1.0, y: 0.0),
+            (x: 1.0, y: 1.0),
+            (x: 0.0, y: 1.0),
+            (x: 0.0, y: 0.0)
+        ]);
+        let serializer = HilbertSerializer::new();
+        let encoded = serializer.encode(&poly).unwrap();
+        println!("Encoded polygon to {} bytes", encoded.len());
+        let decoded = serializer.decode(&encoded).unwrap();
+        assert_eq!(poly, decoded);
+    }
 }

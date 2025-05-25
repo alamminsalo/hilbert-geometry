@@ -1,15 +1,26 @@
+use bincode::{
+    config,
+    config::Configuration,
+    error::{DecodeError, EncodeError},
+    Decode, Encode,
+};
 use geo_types::{Coord, Geometry, LineString, Point, Polygon};
 use hilbert_2d::{h2xy_continuous_f64, xy2h_continuous_f64, Variant};
 
 const HILBERT_VARIANT: Variant = Variant::Hilbert;
 const PRECISION: i32 = 7;
 
+#[inline(always)]
+fn round_decimal(v: f64) -> f64 {
+    (v * 10f64.powi(PRECISION)).round() / 10f64.powi(PRECISION)
+}
+
 /// Represents a Hilbert-encoded point.
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone, Copy, Decode, Encode)]
 pub struct HilbertPoint(pub f64);
 
 /// Represents a Hilbert-encoded geometry.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Decode, Encode)]
 pub enum HilbertGeometry {
     Point(HilbertPoint),
     LineString(Vec<HilbertPoint>),
@@ -25,8 +36,8 @@ fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
 fn decode_coord(p: HilbertPoint) -> Coord<f64> {
     let (x, y) = h2xy_continuous_f64(p.0, HILBERT_VARIANT);
     Coord {
-        x: (x * 10f64.powi(PRECISION)).round() / 10f64.powi(PRECISION),
-        y: (y * 10f64.powi(PRECISION)).round() / 10f64.powi(PRECISION),
+        x: round_decimal(x),
+        y: round_decimal(y),
     }
 }
 
@@ -81,5 +92,54 @@ pub fn decode_geometry(hgeom: &HilbertGeometry) -> Geometry<f64> {
                 .collect();
             Geometry::Polygon(Polygon::new(exterior, interiors))
         }
+    }
+}
+
+impl From<&Geometry> for HilbertGeometry {
+    fn from(geom: &Geometry) -> Self {
+        encode_geometry(&geom)
+    }
+}
+
+impl Into<Geometry> for HilbertGeometry {
+    fn into(self) -> Geometry {
+        decode_geometry(&self)
+    }
+}
+
+impl HilbertGeometry {
+    pub fn encode_bincode(self, config: &Configuration) -> Result<Vec<u8>, EncodeError> {
+        bincode::encode_to_vec(self, *config)
+    }
+
+    pub fn decode_bincode(
+        data: &[u8],
+        config: &Configuration,
+    ) -> Result<HilbertGeometry, DecodeError> {
+        let (decoded, _) = bincode::decode_from_slice(data, *config)?;
+        Ok(decoded)
+    }
+}
+
+// Geometry <-> HWKB
+pub struct HilbertSerializer {
+    config: Configuration,
+}
+
+impl HilbertSerializer {
+    pub fn new() -> Self {
+        Self {
+            config: config::standard(),
+        }
+    }
+
+    pub fn encode(&self, geom: &Geometry) -> Result<Vec<u8>, EncodeError> {
+        let hg = HilbertGeometry::from(geom);
+        hg.encode_bincode(&self.config)
+    }
+
+    pub fn decode(&self, data: &[u8]) -> Result<Geometry, DecodeError> {
+        let hg = HilbertGeometry::decode_bincode(data, &self.config)?;
+        Ok(hg.into())
     }
 }
