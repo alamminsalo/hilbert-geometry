@@ -1,0 +1,9 @@
+[package]
+name = "hilbert-geometry"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+byteorder = "1.5.0"
+geo-types = "0.7.16"
+hilbert_2d = "1.1.0"
