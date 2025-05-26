@@ -2,6 +2,7 @@
 mod tests {
     use geo_types::{line_string, point, polygon, Geometry};
     use hilbert_geometry::*;
+    use wkb;
 
     #[test]
     fn test_point_encoding() {
@@ -14,10 +15,11 @@ mod tests {
     #[test]
     fn test_linestring_encoding() {
         let ls = Geometry::LineString(line_string![
-            (x: 0.0, y: 0.0),
-            (x: 1.0, y: 1.0)
+            (x: 1.0, y: 1.0),
+            (x: 5.0, y: 5.0)
         ]);
         let encoded = encode_geometry(&ls);
+        println!("{encoded:?}");
         let decoded = decode_geometry(&encoded);
         assert_eq!(ls, decoded);
     }
@@ -38,25 +40,42 @@ mod tests {
 
     #[test]
     fn test_serialization() {
+        let serializer = HilbertSerializer::new();
+        let to_wkb = |geom: &Geometry| {
+            let mut wkb_buf = vec![];
+            wkb::writer::write_geometry(&mut wkb_buf, &geom, &wkb::writer::WriteOptions::default())
+                .unwrap();
+            wkb_buf
+        };
+
+        // Point
         let point = Geometry::Point(point![
             x: 1.0, y: 1.0
         ]);
-        let serializer = HilbertSerializer::new();
         let encoded = serializer.encode(&point).unwrap();
-        println!("Encoded point to {} bytes", encoded.len());
         let decoded = serializer.decode(&encoded).unwrap();
+        println!(
+            "Encoded point to {} bytes. WKB is {} bytes.",
+            encoded.len(),
+            to_wkb(&point).len()
+        );
         assert_eq!(point, decoded);
 
+        // Linestring
         let ls = Geometry::LineString(line_string![
             (x: 1.0, y: 1.0),
             (x: 5.0, y: 5.0)
         ]);
-        let serializer = HilbertSerializer::new();
         let encoded = serializer.encode(&ls).unwrap();
-        println!("Encoded linestring to {} bytes", encoded.len());
         let decoded = serializer.decode(&encoded).unwrap();
+        println!(
+            "Encoded linestring to {} bytes. WKB is {} bytes.",
+            encoded.len(),
+            to_wkb(&ls).len()
+        );
         assert_eq!(ls, decoded);
 
+        // Polygon
         let poly = Geometry::Polygon(polygon![
             (x: 0.0, y: 0.0),
             (x: 1.0, y: 0.0),
@@ -64,10 +83,13 @@ mod tests {
             (x: 0.0, y: 1.0),
             (x: 0.0, y: 0.0)
         ]);
-        let serializer = HilbertSerializer::new();
         let encoded = serializer.encode(&poly).unwrap();
-        println!("Encoded polygon to {} bytes", encoded.len());
         let decoded = serializer.decode(&encoded).unwrap();
+        println!(
+            "Encoded polygon to {} bytes. WKB is {} bytes.",
+            encoded.len(),
+            to_wkb(&poly).len()
+        );
         assert_eq!(poly, decoded);
     }
 }

@@ -29,15 +29,19 @@ pub enum HilbertGeometry {
 
 /// Encodes a 2D coordinate into a Hilbert index.
 fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
-    HilbertPoint(xy2h_continuous_f64(coord.x, coord.y, HILBERT_VARIANT))
+    HilbertPoint(xy2h_continuous_f64(
+        coord.x / 180.,
+        coord.y / 90.,
+        HILBERT_VARIANT,
+    ))
 }
 
 /// Decodes a Hilbert index back into a 2D coordinate.
 fn decode_coord(p: HilbertPoint) -> Coord<f64> {
     let (x, y) = h2xy_continuous_f64(p.0, HILBERT_VARIANT);
     Coord {
-        x: round_decimal(x),
-        y: round_decimal(y),
+        x: round_decimal(x * 180.),
+        y: round_decimal(y * 90.),
     }
 }
 
