@@ -1,6 +1,7 @@
 # Hilbert Geometry
 
 Encodes `geo-types` geometries using hilbert encoding. Currently only supports lon/lat coordinates. Uses `bincode` for binary serialization.
+
 Note: compression is **lossy**. Currently, geometries retain seven decimals of precision after decoding.
 
 Usage:
@@ -20,3 +21,11 @@ let poly = Geometry::Polygon(polygon![
 let encoded: Vec<u8> = serializer.encode(&poly).unwrap();
 let decoded: Geometry = serializer.decode(&encoded).unwrap();
 ```
+
+# Compression examples
+
+| Geometry   | Hilbert Geometry | WKB      |
+| ---------- | ---------------- | -------- |
+| Point      | 9 bytes          | 21 bytes |
+| Linestring | 18 bytes         | 41 bytes |
+| Polygon    | 43 bytes         | 93 bytes |
