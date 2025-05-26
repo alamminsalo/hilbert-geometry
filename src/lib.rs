@@ -4,7 +4,9 @@ use bincode::{
     error::{DecodeError, EncodeError},
     Decode, Encode,
 };
-use geo_types::{Coord, Geometry, LineString, Point, Polygon};
+use geo_types::{
+    Coord, Geometry, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
+};
 use hilbert_2d::{h2xy_continuous_f64, xy2h_continuous_f64, Variant};
 
 const HILBERT_VARIANT: Variant = Variant::Hilbert;
@@ -24,7 +26,10 @@ pub struct HilbertPoint(pub f64);
 pub enum HilbertGeometry {
     Point(HilbertPoint),
     LineString(Vec<HilbertPoint>),
-    Polygon(Vec<Vec<HilbertPoint>>), // Outer ring and inner rings
+    Polygon(Vec<Vec<HilbertPoint>>),
+    MultiPoint(Vec<HilbertPoint>),
+    MultiLineString(Vec<Vec<HilbertPoint>>),
+    MultiPolygon(Vec<Vec<Vec<HilbertPoint>>>),
 }
 
 /// Encodes a 2D coordinate into a Hilbert index.
@@ -47,29 +52,72 @@ fn decode_coord(p: HilbertPoint) -> Coord<f64> {
 
 /// Encodes a `geo-types` geometry into a Hilbert-encoded geometry.
 pub fn encode_geometry(geom: &Geometry<f64>) -> HilbertGeometry {
+    let make_point = |pt: &Point| HilbertGeometry::Point(encode_coord(pt.0));
+    let make_linestring = |ls: &LineString| {
+        let encoded = ls.points().map(|p| encode_coord(p.0)).collect();
+        HilbertGeometry::LineString(encoded)
+    };
+    let make_poly = |poly: &Polygon| {
+        let exterior = poly
+            .exterior()
+            .points()
+            .map(|p| encode_coord(p.0))
+            .collect::<Vec<HilbertPoint>>();
+        let interiors = poly
+            .interiors()
+            .iter()
+            .map(|ring| {
+                ring.points()
+                    .map(|p| encode_coord(p.0))
+                    .collect::<Vec<HilbertPoint>>()
+            })
+            .collect::<Vec<Vec<HilbertPoint>>>();
+        HilbertGeometry::Polygon(vec![vec![exterior], interiors].concat())
+    };
+
     match geom {
-        Geometry::Point(pt) => HilbertGeometry::Point(encode_coord(pt.0)),
-        Geometry::LineString(ls) => {
-            let encoded = ls.points().map(|p| encode_coord(p.0)).collect();
-            HilbertGeometry::LineString(encoded)
-        }
-        Geometry::Polygon(poly) => {
-            let exterior = poly
-                .exterior()
-                .points()
-                .map(|p| encode_coord(p.0))
-                .collect::<Vec<HilbertPoint>>();
-            let interiors = poly
-                .interiors()
+        Geometry::Point(pt) => make_point(pt),
+        Geometry::LineString(ls) => make_linestring(ls),
+        Geometry::Polygon(poly) => make_poly(poly),
+        Geometry::MultiPoint(geoms) => HilbertGeometry::MultiPoint(
+            geoms
                 .iter()
-                .map(|ring| {
-                    ring.points()
-                        .map(|p| encode_coord(p.0))
-                        .collect::<Vec<HilbertPoint>>()
+                .map(make_point)
+                .filter_map(|hg| {
+                    if let HilbertGeometry::Point(hp) = hg {
+                        Some(hp)
+                    } else {
+                        None
+                    }
                 })
-                .collect::<Vec<Vec<HilbertPoint>>>();
-            HilbertGeometry::Polygon(vec![vec![exterior], interiors].concat())
-        }
+                .collect(),
+        ),
+        Geometry::MultiLineString(geoms) => HilbertGeometry::MultiLineString(
+            geoms
+                .iter()
+                .map(make_linestring)
+                .filter_map(|hg| {
+                    if let HilbertGeometry::LineString(hp) = hg {
+                        Some(hp)
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        ),
+        Geometry::MultiPolygon(geoms) => HilbertGeometry::MultiPolygon(
+            geoms
+                .iter()
+                .map(make_poly)
+                .filter_map(|hg| {
+                    if let HilbertGeometry::Polygon(hp) = hg {
+                        Some(hp)
+                    } else {
+                        None
+                    }
+                })
+                .collect(),
+        ),
         _ => unimplemented!("Geometry type not supported"),
     }
 }
@@ -95,6 +143,26 @@ pub fn decode_geometry(hgeom: &HilbertGeometry) -> Geometry<f64> {
                 .map(|ring| LineString(ring.iter().map(|hp| decode_coord(*hp)).collect()))
                 .collect();
             Geometry::Polygon(Polygon::new(exterior, interiors))
+        }
+        HilbertGeometry::MultiPoint(hps) => {
+            let coords = hps.iter().map(|hp| decode_coord(*hp).into()).collect();
+            Geometry::MultiPoint(MultiPoint(coords))
+        }
+        HilbertGeometry::MultiLineString(hps) => {
+            let linestrings = hps
+                .iter()
+                .map(|ls| decode_geometry(&HilbertGeometry::LineString(ls.clone())))
+                .map(|g| g.try_into().unwrap())
+                .collect();
+            Geometry::MultiLineString(MultiLineString(linestrings))
+        }
+        HilbertGeometry::MultiPolygon(hps) => {
+            let polygons = hps
+                .iter()
+                .map(|poly| decode_geometry(&HilbertGeometry::Polygon(poly.clone())))
+                .map(|g| g.try_into().unwrap())
+                .collect();
+            Geometry::MultiPolygon(MultiPolygon(polygons))
         }
     }
 }
