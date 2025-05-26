@@ -1,0 +1,22 @@
+# Hilbert Geometry
+
+Encodes `geo-types` geometries using hilbert encoding. Currently only supports lon/lat coordinates. Uses `bincode` for binary serialization.
+Note: compression is **lossy**. Currently, geometries retain seven decimals of precision after decoding.
+
+Usage:
+
+```
+use geo_types::{polygon, Geometry};
+use hilbert_geometry::HilbertSerializer;
+
+let serializer = HilbertSerializer::new();
+let poly = Geometry::Polygon(polygon![
+    (x: 0.0, y: 0.0),
+    (x: 1.0, y: 0.0),
+    (x: 1.0, y: 1.0),
+    (x: 0.0, y: 1.0),
+    (x: 0.0, y: 0.0)
+]);
+let encoded: Vec<u8> = serializer.encode(&poly).unwrap();
+let decoded: Geometry = serializer.decode(&encoded).unwrap();
+```
