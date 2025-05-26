@@ -19,7 +19,6 @@ mod tests {
             (x: 5.0, y: 5.0)
         ]);
         let encoded = encode_geometry(&ls);
-        println!("{encoded:?}");
         let decoded = decode_geometry(&encoded);
         assert_eq!(ls, decoded);
     }
