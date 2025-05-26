@@ -2,7 +2,7 @@
 name = "hilbert-geometry"
 version = "0.1.1"
 edition = "2024"
-description = "Hilbert-encoded geometries"
+description = "Hilbert-encoded geometries. Currently only supports lon/lat coordinates."
 license = "MIT"
 repository = "https://github.com/alamminsalo/hilbert-geometry"
 
