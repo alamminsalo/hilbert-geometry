@@ -2,7 +2,7 @@
 
 Encodes `geo-types` geometries using hilbert encoding. Currently only supports lon/lat coordinates. Uses `bincode` for binary serialization.
 
-Note: compression is **lossy**, translating to around 0.1 meter offset.
+Note: compression is **lossy**, translating to around 0.1 meter real-world offset.
 
 Usage:
 
