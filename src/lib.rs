@@ -13,12 +13,6 @@ mod normalize;
 use normalize::{denormalize_lon_lat, normalize_lon_lat};
 
 const HILBERT_VARIANT: Variant = Variant::Hilbert;
-const PRECISION: i32 = 5;
-
-#[inline(always)]
-fn round_decimal(v: f64) -> f64 {
-    (v * 10f64.powi(PRECISION)).round() / 10f64.powi(PRECISION)
-}
 
 /// Represents a Hilbert-encoded point.
 #[derive(Debug, Clone, Copy, Decode, Encode)]
@@ -45,10 +39,7 @@ fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
 fn decode_coord(p: HilbertPoint) -> Coord<f64> {
     let (x, y) = h2xy_continuous_f64(p.0, HILBERT_VARIANT);
     let (x, y) = denormalize_lon_lat(x, y);
-    Coord {
-        x: round_decimal(x),
-        y: round_decimal(y),
-    }
+    Coord { x, y }
 }
 
 /// Encodes a `geo-types` geometry into a Hilbert-encoded geometry.
