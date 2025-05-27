@@ -10,6 +10,11 @@ mod tests {
         let encoded = encode_geometry(&pt);
         let decoded = decode_geometry(&encoded);
         assert_eq!(pt, decoded);
+
+        let pt = Geometry::Point(point!(x: -44., y: -22.));
+        let encoded = encode_geometry(&pt);
+        let decoded = decode_geometry(&encoded);
+        assert_eq!(pt, decoded);
     }
 
     #[test]

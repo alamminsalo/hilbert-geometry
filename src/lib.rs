@@ -9,8 +9,11 @@ use geo_types::{
 };
 use hilbert_2d::{h2xy_continuous_f64, xy2h_continuous_f64, Variant};
 
+mod normalize;
+use normalize::{denormalize_lon_lat, normalize_lon_lat};
+
 const HILBERT_VARIANT: Variant = Variant::Hilbert;
-const PRECISION: i32 = 7;
+const PRECISION: i32 = 5;
 
 #[inline(always)]
 fn round_decimal(v: f64) -> f64 {
@@ -34,19 +37,17 @@ pub enum HilbertGeometry {
 
 /// Encodes a 2D coordinate into a Hilbert index.
 fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
-    HilbertPoint(xy2h_continuous_f64(
-        coord.x / 180.,
-        coord.y / 90.,
-        HILBERT_VARIANT,
-    ))
+    let (x, y) = normalize_lon_lat(coord.x, coord.y);
+    HilbertPoint(xy2h_continuous_f64(x, y, HILBERT_VARIANT))
 }
 
 /// Decodes a Hilbert index back into a 2D coordinate.
 fn decode_coord(p: HilbertPoint) -> Coord<f64> {
     let (x, y) = h2xy_continuous_f64(p.0, HILBERT_VARIANT);
+    let (x, y) = denormalize_lon_lat(x, y);
     Coord {
-        x: round_decimal(x * 180.),
-        y: round_decimal(y * 90.),
+        x: round_decimal(x),
+        y: round_decimal(y),
     }
 }
 
