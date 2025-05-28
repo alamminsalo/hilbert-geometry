@@ -11,7 +11,7 @@ use geo_types::{
 
 /// Represents a Hilbert-encoded point.
 #[derive(Debug, Clone, Copy, Decode, Encode)]
-pub struct HilbertPoint(pub u128);
+pub struct HilbertPoint(pub u64);
 
 /// Represents a Hilbert-encoded geometry.
 #[derive(Debug, Clone, Decode, Encode)]
@@ -26,15 +26,19 @@ pub enum HilbertGeometry {
 
 /// Encodes a 2D coordinate into a Hilbert index.
 fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
-    HilbertPoint(xy2h(coord.x.to_bits(), coord.y.to_bits(), 32))
+    HilbertPoint(xy2h(
+        (coord.x as f32).to_bits(),
+        (coord.y as f32).to_bits(),
+        32,
+    ))
 }
 
 /// Decodes a Hilbert index back into a 2D coordinate.
 fn decode_coord(p: HilbertPoint) -> Coord<f64> {
     let (x, y) = h2xy(p.0, 32);
     Coord {
-        x: f64::from_bits(x),
-        y: f64::from_bits(y),
+        x: f32::from_bits(x) as f64,
+        y: f32::from_bits(y) as f64,
     }
 }
 
