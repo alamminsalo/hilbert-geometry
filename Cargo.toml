@@ -1,6 +1,6 @@
 [package]
 name = "hilbert-geometry"
-version = "0.1.6"
+version = "0.1.7"
 edition = "2024"
 description = "Hilbert-encoded geometries. Currently only supports lon/lat coordinates."
 license = "MIT"
@@ -10,6 +10,3 @@ repository = "https://github.com/alamminsalo/hilbert-geometry"
 bincode = "2.0.1"
 fast_hilbert = "2.0.1"
 geo-types = "0.7.16"
-
-[dev-dependencies]
-wkb = "0.9.0"

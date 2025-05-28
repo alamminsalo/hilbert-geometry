@@ -6,8 +6,12 @@ use bincode::{
 };
 use fast_hilbert::{h2xy, xy2h};
 use geo_types::{
-    Coord, Geometry, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
+    Coord as Coord64, Geometry as Geometry64, LineString, MultiLineString, MultiPoint,
+    MultiPolygon, Point, Polygon,
 };
+
+type Geometry = Geometry64<f32>;
+type Coord = Coord64<f32>;
 
 /// Represents a Hilbert-encoded point.
 #[derive(Debug, Clone, Copy, Decode, Encode)]
@@ -25,31 +29,27 @@ pub enum HilbertGeometry {
 }
 
 /// Encodes a 2D coordinate into a Hilbert index.
-fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
-    HilbertPoint(xy2h(
-        (coord.x as f32).to_bits(),
-        (coord.y as f32).to_bits(),
-        32,
-    ))
+fn encode_coord(coord: Coord) -> HilbertPoint {
+    HilbertPoint(xy2h(coord.x.to_bits(), coord.y.to_bits(), 32))
 }
 
 /// Decodes a Hilbert index back into a 2D coordinate.
-fn decode_coord(p: HilbertPoint) -> Coord<f64> {
+fn decode_coord(p: HilbertPoint) -> Coord {
     let (x, y) = h2xy(p.0, 32);
     Coord {
-        x: f32::from_bits(x) as f64,
-        y: f32::from_bits(y) as f64,
+        x: f32::from_bits(x),
+        y: f32::from_bits(y),
     }
 }
 
 /// Encodes a `geo-types` geometry into a Hilbert-encoded geometry.
-pub fn encode_geometry(geom: &Geometry<f64>) -> HilbertGeometry {
-    let make_point = |pt: &Point| HilbertGeometry::Point(encode_coord(pt.0));
-    let make_linestring = |ls: &LineString| {
+pub fn encode_geometry(geom: &Geometry) -> HilbertGeometry {
+    let make_point = |pt: &Point<f32>| HilbertGeometry::Point(encode_coord(pt.0));
+    let make_linestring = |ls: &LineString<f32>| {
         let encoded = ls.points().map(|p| encode_coord(p.0)).collect();
         HilbertGeometry::LineString(encoded)
     };
-    let make_poly = |poly: &Polygon| {
+    let make_poly = |poly: &Polygon<f32>| {
         let exterior = poly
             .exterior()
             .points()
@@ -115,7 +115,7 @@ pub fn encode_geometry(geom: &Geometry<f64>) -> HilbertGeometry {
 }
 
 /// Decodes a Hilbert-encoded geometry back into a `geo-types` geometry.
-pub fn decode_geometry(hgeom: &HilbertGeometry) -> Geometry<f64> {
+pub fn decode_geometry(hgeom: &HilbertGeometry) -> Geometry {
     match hgeom {
         HilbertGeometry::Point(hp) => {
             let coord = decode_coord(*hp);
