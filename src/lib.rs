@@ -4,19 +4,14 @@ use bincode::{
     error::{DecodeError, EncodeError},
     Decode, Encode,
 };
+use fast_hilbert::{h2xy, xy2h};
 use geo_types::{
     Coord, Geometry, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon,
 };
-use hilbert_2d::{h2xy_continuous_f64, xy2h_continuous_f64, Variant};
-
-mod normalize;
-use normalize::{denormalize_lon_lat, normalize_lon_lat};
-
-const HILBERT_VARIANT: Variant = Variant::Hilbert;
 
 /// Represents a Hilbert-encoded point.
 #[derive(Debug, Clone, Copy, Decode, Encode)]
-pub struct HilbertPoint(pub f64);
+pub struct HilbertPoint(pub u128);
 
 /// Represents a Hilbert-encoded geometry.
 #[derive(Debug, Clone, Decode, Encode)]
@@ -31,15 +26,16 @@ pub enum HilbertGeometry {
 
 /// Encodes a 2D coordinate into a Hilbert index.
 fn encode_coord(coord: Coord<f64>) -> HilbertPoint {
-    let (x, y) = normalize_lon_lat(coord.x, coord.y);
-    HilbertPoint(xy2h_continuous_f64(x, y, HILBERT_VARIANT))
+    HilbertPoint(xy2h(coord.x.to_bits(), coord.y.to_bits(), 32))
 }
 
 /// Decodes a Hilbert index back into a 2D coordinate.
 fn decode_coord(p: HilbertPoint) -> Coord<f64> {
-    let (x, y) = h2xy_continuous_f64(p.0, HILBERT_VARIANT);
-    let (x, y) = denormalize_lon_lat(x, y);
-    Coord { x, y }
+    let (x, y) = h2xy(p.0, 32);
+    Coord {
+        x: f64::from_bits(x),
+        y: f64::from_bits(y),
+    }
 }
 
 /// Encodes a `geo-types` geometry into a Hilbert-encoded geometry.

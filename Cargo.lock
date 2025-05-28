@@ -50,6 +50,12 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "877a4ace8713b0bcf2a4e7eec82529c029f1d0619886d18145fea96c3ffe5c0f"
 
 [[package]]
+name = "fast_hilbert"
+version = "2.0.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "3faa84f4bea4fba03e05500ec1fad62efe4a07632100f1cbef165bb22dcb77fc"
+
+[[package]]
 name = "geo-traits"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -80,16 +86,10 @@ name = "hilbert-geometry"
 version = "0.1.4"
 dependencies = [
  "bincode",
+ "fast_hilbert",
  "geo-types",
- "hilbert_2d",
  "wkb",
 ]
-
-[[package]]
-name = "hilbert_2d"
-version = "1.1.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "705f81e042b11734af35c701c7f6b65f8a968a430621fa2c95e72e27f9f8be5c"
 
 [[package]]
 name = "indexmap"
